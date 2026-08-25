@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Zap } from "lucide-react";
 
-import { HealthPill } from "@/components/hermes/health-pill";
-import { HermesNav } from "@/components/hermes/hermes-nav";
+import { HermesSidebar } from "@/components/hermes/hermes-sidebar";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -20,24 +17,26 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="min-h-dvh">
         <Providers>
-          <header className="border-b border-border bg-background/80 backdrop-blur">
-            <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:px-6">
-              <div className="flex items-center justify-between gap-4">
-                <Link href="/" className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-md bg-primary/15 text-primary">
-                    <Zap className="size-5" />
-                  </span>
-                  <span className="text-lg font-semibold tracking-tight">Hermes</span>
-                  <span className="hidden text-sm text-muted-foreground sm:inline">
-                    HermesMQ console
-                  </span>
-                </Link>
-                <HealthPill />
+          <div className="flex min-h-dvh">
+            <HermesSidebar />
+            <main className="relative min-w-0 flex-1">
+              {/* Faint logo watermark in the main view. Fixed and offset past
+                  the sidebar, very low opacity, and pointer/aria-inert so it
+                  reads as texture rather than distraction. */}
+              <div
+                aria-hidden
+                className="pointer-events-none fixed inset-y-0 left-16 right-0 z-0 flex items-center justify-center overflow-hidden sm:left-60"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/hermes-logo.png"
+                  alt=""
+                  className="w-[36rem] max-w-[70%] select-none opacity-[0.05]"
+                />
               </div>
-              <HermesNav />
-            </div>
-          </header>
-          <main>{children}</main>
+              <div className="relative z-10">{children}</div>
+            </main>
+          </div>
         </Providers>
       </body>
     </html>
