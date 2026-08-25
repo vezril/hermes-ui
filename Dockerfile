@@ -16,6 +16,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* values are inlined into the browser bundle at BUILD time (not
+# read from the container env at runtime), so the live-BFF selector must be baked
+# here. Without this the shipped image would silently fall back to in-browser
+# fixtures. The same-origin path is not a secret; the HERMES_TOKEN/endpoint stay
+# server-side (runtime env). The Helm chart also sets this env, which then only
+# affects the server tier's copy — the browser value is whatever is baked here.
+ENV NEXT_PUBLIC_HERMES_API_BASE=/api/hermes
 RUN npm run build
 
 # ---- runner: minimal runtime ----
