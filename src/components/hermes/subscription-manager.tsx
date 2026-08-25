@@ -1,14 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { AlertCircle, Loader2, Waypoints } from "lucide-react";
+import { AlertCircle, Loader2, Trash2, Waypoints } from "lucide-react";
 
 import type { Subscription } from "@/lib/hermes";
-import { useSubscriptions } from "@/lib/hooks/use-subscriptions";
+import {
+  useDeleteSubscription,
+  useSubscriptions,
+} from "@/lib/hooks/use-subscriptions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { CreateSubscriptionDialog } from "./create-subscription-dialog";
+import { DeleteSubscriptionDialog } from "./delete-subscription-dialog";
 
 /** Compact count: 1234 → 1.2k, 1200000 → 1.2M. */
 function formatCount(n: number): string {
@@ -28,6 +33,7 @@ function formatAge(seconds: number): string {
 
 interface Row extends Subscription {
   syncing: boolean;
+  deleting: boolean;
 }
 
 /** A labelled metric cell (never color-only — always a number + label). */
@@ -58,15 +64,19 @@ function Metric({
 }
 
 /**
- * Hermes subscriptions operator view (tasks 3.2–3.3). Lists each subscription
- * with its topic and queue health — backlog (depth), oldest-unacked age,
- * redelivered, and dead-lettered (emphasized when > 0). The listing is an
- * eventually-consistent stats projection, so a created subscription is shown
- * optimistically with a "syncing" badge until it appears.
+ * Hermes subscriptions operator view. Lists each subscription with its topic and
+ * queue health — backlog (depth), oldest-unacked age, redelivered, and
+ * dead-lettered (emphasized when > 0) — and lets an operator create or delete
+ * one. The listing is an eventually-consistent stats projection, so a created
+ * subscription is shown optimistically with a "syncing" badge and a deleted one
+ * with a "deleting" badge until the projection catches up.
  */
 export function SubscriptionManager() {
   const { data, isLoading, isError, error, refetch } = useSubscriptions();
+  const del = useDeleteSubscription();
   const [pendingCreate, setPendingCreate] = React.useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = React.useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
 
   const listed = React.useMemo(() => data ?? [], [data]);
   const listedIds = React.useMemo(
@@ -74,20 +84,29 @@ export function SubscriptionManager() {
     [listed]
   );
 
+  // Reconcile optimistic sets against the eventually-consistent stats list.
   React.useEffect(() => {
     if (pendingCreate.length) {
       setPendingCreate((prev) => prev.filter((id) => !listedIds.has(id)));
     }
-  }, [listedIds, pendingCreate.length]);
+    if (pendingDelete.length) {
+      setPendingDelete((prev) => prev.filter((id) => listedIds.has(id)));
+    }
+  }, [listedIds, pendingCreate.length, pendingDelete.length]);
 
+  // Poll the projection while anything is settling.
   React.useEffect(() => {
-    if (pendingCreate.length === 0) return;
+    if (pendingCreate.length === 0 && pendingDelete.length === 0) return;
     const timer = setInterval(() => void refetch(), 1500);
     return () => clearInterval(timer);
-  }, [pendingCreate.length, refetch]);
+  }, [pendingCreate.length, pendingDelete.length, refetch]);
 
   const rows: Row[] = React.useMemo(() => {
-    const base: Row[] = listed.map((s) => ({ ...s, syncing: false }));
+    const base: Row[] = listed.map((s) => ({
+      ...s,
+      syncing: false,
+      deleting: pendingDelete.includes(s.subscriptionId),
+    }));
     const extra: Row[] = pendingCreate
       .filter((id) => !listedIds.has(id))
       .map((id) => ({
@@ -98,11 +117,24 @@ export function SubscriptionManager() {
         redeliveredTotal: 0,
         deadLetteredTotal: 0,
         syncing: true,
+        deleting: false,
       }));
     return [...base, ...extra].sort((a, b) =>
       a.subscriptionId.localeCompare(b.subscriptionId)
     );
-  }, [listed, listedIds, pendingCreate]);
+  }, [listed, listedIds, pendingCreate, pendingDelete]);
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget;
+    try {
+      await del.mutateAsync(id);
+      setPendingDelete((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      setDeleteTarget(null);
+    } catch {
+      // Surfaced in the dialog.
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -148,7 +180,10 @@ export function SubscriptionManager() {
           {rows.map((s) => (
             <li
               key={s.subscriptionId}
-              className="flex items-center gap-4 bg-card px-4 py-3 transition-colors hover:bg-accent/40"
+              className={cn(
+                "flex items-center gap-4 bg-card px-4 py-3 transition-colors hover:bg-accent/40",
+                s.deleting && "opacity-50"
+              )}
             >
               <Waypoints className="size-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
@@ -163,6 +198,11 @@ export function SubscriptionManager() {
                 <Badge variant="muted" className="shrink-0">
                   <Loader2 className="size-3 animate-spin" />
                   syncing
+                </Badge>
+              ) : s.deleting ? (
+                <Badge variant="muted" className="shrink-0">
+                  <Loader2 className="size-3 animate-spin" />
+                  deleting
                 </Badge>
               ) : (
                 <div className="flex shrink-0 items-center gap-5">
@@ -180,12 +220,34 @@ export function SubscriptionManager() {
                     value={formatCount(s.deadLetteredTotal)}
                     emphasize={s.deadLetteredTotal > 0}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Delete ${s.subscriptionId}`}
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => setDeleteTarget(s.subscriptionId)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </div>
               )}
             </li>
           ))}
         </ul>
       )}
+
+      <DeleteSubscriptionDialog
+        subscriptionId={deleteTarget}
+        isDeleting={del.isPending}
+        error={del.isError ? (del.error as Error).message : null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            del.reset();
+          }
+        }}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

@@ -28,3 +28,13 @@ export function useCreateSubscription() {
       qc.invalidateQueries({ queryKey: subscriptionsQueryKey }),
   });
 }
+
+export function useDeleteSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (subscriptionId: string) =>
+      getHermesClient().deleteSubscription(subscriptionId),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: subscriptionsQueryKey }),
+  });
+}
