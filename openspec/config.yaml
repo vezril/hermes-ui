@@ -1,0 +1,47 @@
+schema: spec-driven
+
+context: |
+  Hermes — the standalone operator/admin console for HermesMQ (the constellation's event-sourced
+  CQRS pub/sub broker, Scala 3 + Apache Pekko). A control panel for humans to *manage* the broker
+  directly. It supersedes the Hermes module that used to live inside zeus-ui (zeus-ui is left
+  untouched; retiring its module is coordinated with Codex separately).
+
+  Five views, Hermes at the app root: Topics (`/` — create/edit-labels/delete/list), Publish
+  (`/publish` — publish a message + a live non-destructive tap of the topic's traffic, and subscribe
+  to the selected topic in place), Topic detail (`/topics/[id]` — labels, published volume, active
+  producers, and the subscriptions bound to it with queue health), Subscriptions (`/subscriptions` —
+  queue health across subscriptions), Statistics (`/stats` — broker-wide totals + per-topic and
+  per-subscription tables).
+
+  Defining constraint: unlike Apollo (gRPC-only), HermesMQ is **REST-first** — its admin surface is
+  `/v1/*` plus `/health` and a Prometheus `/metrics` exposition. Even so, Hermes runs a thin
+  **Next.js BFF** (Node-runtime route handlers under `/api/hermes/*`) as the secret boundary: the
+  `HERMES_TOKEN` bearer and endpoint stay server-side, never `NEXT_PUBLIC_*`. The browser bundle
+  never holds the token; it fetches Hermes's own `/api/hermes/*` routes.
+
+  Producer identities have **no REST listing** — the per-topic active-producer *count* comes only
+  from the `hermesmq_topic_producers` Prometheus gauge (added in HermesMQ v1.10.0). So `/metrics` is
+  a first-class data source here, not just a dashboard feed: the BFF forwards the raw exposition and
+  a shared parser (`src/lib/hermes/metrics.ts`) turns it into structured series for the statistics
+  and topic-detail views. Producer/consumer counts are per-node activity windows — "recently
+  active", not a registry.
+
+  Runtime client seam (`src/lib/hermes/`): a live HTTP client vs an in-memory fixtures client,
+  selected by `NEXT_PUBLIC_HERMES_API_BASE` (a same-origin path, NOT a secret), so the whole UI is
+  navigable with no HermesMQ running. HermesMQ's topic/subscription listings are an eventually
+  consistent stats projection, so writes use optimistic insert + a visible per-item "syncing" badge
+  until the projection catches up.
+
+  Stack: Next.js 15 (App Router) · React 19 · Tailwind v4 (oklch CSS vars, no config; dark theme with
+  a warm amber accent that distinguishes it from sibling consoles) · Radix · TanStack Query v5 ·
+  lucide · cva/clsx/tailwind-merge · TypeScript (strict) · `output: 'standalone'`. Multi-stage Docker
+  (node:22-alpine, non-root); CI (lint + typecheck + `next build`) and Release (Docker Hub `hermesui`
+  on a `vX.Y.Z` tag on main) mirror the sibling repos. Helm+Flux deploy is Codex's domain (not yet).
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
