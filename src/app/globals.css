@@ -4,44 +4,13 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Hermes is a dark, low-chrome operator console for HermesMQ — dense, calm,
- * information-first. It carries a warm amber accent (the messenger's gold) to
- * set it apart from its sibling consoles while sharing the constellation's
- * neutral surfaces. Dark values live on :root so the app is dark by default;
- * the .dark class (set on <html>) mirrors them so `dark:` variants resolve too.
+ * Constellation UX standard (codex/docs/ux-standards.md): one shared cyberpunk
+ * base (dark-only, hue-280 ground, sharp 0.15rem radius, neon focus ring, family
+ * cyan linework) + one god accent per service. Hermes's accent is GREEN
+ * (oklch(0.8 0.25 145) ≈ #0AE442 — the winged-helm mark's accent). Base copied
+ * from the reference impl, dionysus-planner/app/globals.css; only the accent
+ * tokens are overridden.
  */
-:root {
-  --background: oklch(0.16 0.006 265);
-  --foreground: oklch(0.92 0.004 265);
-  --card: oklch(0.19 0.006 265);
-  --card-foreground: oklch(0.92 0.004 265);
-  --popover: oklch(0.19 0.006 265);
-  --popover-foreground: oklch(0.92 0.004 265);
-  --primary: oklch(0.78 0.14 75);
-  --primary-foreground: oklch(0.16 0.006 265);
-  --secondary: oklch(0.26 0.008 265);
-  --secondary-foreground: oklch(0.92 0.004 265);
-  --muted: oklch(0.24 0.006 265);
-  --muted-foreground: oklch(0.62 0.006 265);
-  --accent: oklch(0.28 0.01 265);
-  --accent-foreground: oklch(0.95 0.004 265);
-  --destructive: oklch(0.58 0.2 25);
-  --destructive-foreground: oklch(0.98 0.004 265);
-  --border: oklch(0.28 0.008 265);
-  --input: oklch(0.28 0.008 265);
-  --ring: oklch(0.78 0.14 75);
-  --radius: 0.625rem;
-
-  /*
-   * Queue-health / status palette — for the topic-detail and statistics views.
-   * Always paired with a text label, never color-only, for accessibility.
-   */
-  --status-serving: oklch(0.72 0.18 150);
-  --status-not-serving: oklch(0.62 0.21 25);
-  --status-unknown: oklch(0.72 0.02 265);
-  --status-warn: oklch(0.8 0.15 85);
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -63,33 +32,121 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Sidebar surfaces (shared block from the reference impl). */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Charts — chart-1 stays family cyan (standard §3). */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /*
+   * Shared status palette (standard §1). Never color-only in the UI — always
+   * paired with text/icon. serving == success-green (coincides with the hermes
+   * accent by design), not-serving == shared destructive, warn == shared amber.
+   */
   --color-status-serving: var(--status-serving);
   --color-status-not-serving: var(--status-not-serving);
   --color-status-unknown: var(--status-unknown);
   --color-status-warn: var(--status-warn);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Sharp corners; scale via the reference multipliers. */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
 }
 
-.dark {
-  --background: oklch(0.16 0.006 265);
-  --foreground: oklch(0.92 0.004 265);
+:root {
+  /* Shared base — hue-280 near-black violet ground (the marks are keyed to it). */
+  --background: oklch(0.13 0.02 280);
+  --foreground: oklch(0.93 0.01 280);
+  --card: oklch(0.17 0.03 280);
+  --card-foreground: oklch(0.93 0.01 280);
+  --popover: oklch(0.17 0.03 280);
+  --popover-foreground: oklch(0.93 0.01 280);
+  --secondary: oklch(0.22 0.04 280);
+  --secondary-foreground: oklch(0.93 0.01 280);
+  --muted: oklch(0.2 0.03 280);
+  --muted-foreground: oklch(0.65 0.03 280);
+  --destructive: oklch(0.62 0.24 25);
+  --destructive-foreground: oklch(0.97 0.01 280);
+  --border: oklch(0.28 0.04 280);
+  --input: oklch(0.28 0.04 280);
+  --radius: 0.15rem;
+
+  /* Hermes god accent — GREEN. Drives primary/ring/sidebar-primary; dark fg. */
+  --primary: oklch(0.8 0.25 145);
+  --primary-foreground: oklch(0.15 0.02 280);
+  --ring: oklch(0.8 0.25 145);
+  /* Single-accent service: --accent stays a neutral surface (hover/active
+     tints), never a second signature color (standard §2). */
+  --accent: oklch(0.22 0.04 280);
+  --accent-foreground: oklch(0.93 0.01 280);
+
+  /* Shared status colors. */
+  --status-serving: oklch(0.8 0.25 145);
+  --status-not-serving: oklch(0.62 0.24 25);
+  --status-unknown: oklch(0.65 0.03 280);
+  --status-warn: oklch(0.8 0.16 85);
+
+  /* Charts — chart-1 = family cyan, then the shared palette. */
+  --chart-1: oklch(0.85 0.2 195);
+  --chart-2: oklch(0.7 0.28 340);
+  --chart-3: oklch(0.8 0.25 145);
+  --chart-4: oklch(0.8 0.16 85);
+  --chart-5: oklch(0.6 0.2 300);
+
+  /* Sidebar — accent-tinted, matching the god accent. */
+  --sidebar: oklch(0.17 0.03 280);
+  --sidebar-foreground: oklch(0.93 0.01 280);
+  --sidebar-primary: oklch(0.8 0.25 145);
+  --sidebar-primary-foreground: oklch(0.15 0.02 280);
+  --sidebar-accent: oklch(0.22 0.04 280);
+  --sidebar-accent-foreground: oklch(0.93 0.01 280);
+  --sidebar-border: oklch(0.28 0.04 280);
+  --sidebar-ring: oklch(0.8 0.25 145);
 }
 
-* {
-  border-color: var(--border);
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  /* Neon focus ring — also the keyboard-focus indicator (standard §1, verbatim). */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 10px color-mix(in oklab, var(--ring) 55%, transparent);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  html {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* Neon glow — allowlisted to focus states, status badges, and the active nav
+   item (standard's glow conventions). */
+@utility glow-primary {
+  box-shadow:
+    0 0 8px color-mix(in oklab, var(--primary) 45%, transparent),
+    0 0 24px color-mix(in oklab, var(--primary) 20%, transparent);
 }
 
 /* Thin, low-chrome scrollbars that fade into the dark surfaces. */
