@@ -89,6 +89,14 @@ export function httpHermesClient(base: string): HermesClient {
       );
     },
 
+    async deleteSubscription(subscriptionId: string): Promise<void> {
+      await expectOk(
+        await fetch(url(`/subscriptions/${encodeURIComponent(subscriptionId)}`), {
+          method: "DELETE",
+        })
+      );
+    },
+
     async publish(input: PublishInput): Promise<PublishResult> {
       return json(
         await fetch(url(`/publish`), {
