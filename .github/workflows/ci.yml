@@ -54,3 +54,36 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+
+  chart:
+    name: Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v5
+      - name: Lint
+        run: helm lint deploy/charts/hermes --set ingress.enabled=true --set ingress.host=ci.local
+      - name: An empty ingress class must be OMITTED, not rendered empty
+        # A null ingressClassName is not the same as no ingressClassName. k3s's
+        # Traefik v2.4 ignores an Ingress whose class it cannot resolve, so the
+        # host 404s while the object looks healthy -- which is exactly how this
+        # shipped, since nothing here rendered the chart at all.
+        run: |
+          helm template h deploy/charts/hermes \
+            --set ingress.enabled=true --set ingress.host=ci.local > /tmp/default.yaml
+          if grep -q "ingressClassName" /tmp/default.yaml; then
+            echo "::error::the default render emits ingressClassName; it must be omitted when empty"
+            grep -n "ingressClassName" /tmp/default.yaml
+            exit 1
+          fi
+      - name: An explicit ingress class must still be rendered
+        run: |
+          helm template h deploy/charts/hermes \
+            --set ingress.enabled=true --set ingress.host=ci.local \
+            --set ingress.className=nginx | grep -q 'ingressClassName: "nginx"' \
+            || { echo "::error::an explicitly set class was dropped"; exit 1; }
+      - name: Disabled ingress renders no Ingress at all
+        run: |
+          if helm template h deploy/charts/hermes | grep -q "kind: Ingress"; then
+            echo "::error::ingress.enabled=false still rendered an Ingress"; exit 1
+          fi
