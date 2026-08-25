@@ -3,8 +3,8 @@ schema: spec-driven
 context: |
   Hermes — the standalone operator/admin console for HermesMQ (the constellation's event-sourced
   CQRS pub/sub broker, Scala 3 + Apache Pekko). A control panel for humans to *manage* the broker
-  directly. It supersedes the Hermes module that used to live inside zeus-ui (zeus-ui is left
-  untouched; retiring its module is coordinated with Codex separately).
+  directly, and HermesMQ's dedicated console. (An earlier Hermes module lived inside zeus-ui, since
+  deprecated; this app replaced it.)
 
   Five views, Hermes at the app root: Topics (`/` — create/edit-labels/delete/list), Publish
   (`/publish` — publish a message + a live non-destructive tap of the topic's traffic, and subscribe
