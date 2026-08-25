@@ -7,8 +7,10 @@
 
 image:
   # Docker Hub is the source of truth; the homelab pulls via the NAS
-  # pull-through cache. Override repository with your Docker Hub user.
-  repository: hermesui
+  # pull-through cache. The release workflow publishes under the DOCKERHUB_USERNAME
+  # account (calvinference — the same account as the sibling services; note the
+  # GitHub org is "vezril" but the Docker Hub user is not).
+  repository: calvinference/hermesui
   # Pin to a released semver tag in production (matches the release workflow).
   tag: latest
   pullPolicy: IfNotPresent

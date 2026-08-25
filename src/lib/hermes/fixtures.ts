@@ -97,6 +97,11 @@ function emitToTaps(topicId: string, message: TapMessage): void {
   taps.get(topicId)?.forEach((cb) => cb(message));
 }
 
+// Deleted subscription ids stay reserved (the real broker's journal still holds
+// their events, so re-creating a deleted id is rejected). Mirror that here so the
+// offline UI behaves like production.
+const deletedSubscriptions = new Set<string>();
+
 export function fixtureHermesClient(): HermesClient {
   return {
     async listTopics(): Promise<TopicSummary[]> {
@@ -139,6 +144,11 @@ export function fixtureHermesClient(): HermesClient {
       if (subscriptions.has(subscriptionId)) {
         throw new Error(`Hermes 409: subscription "${subscriptionId}" already exists`);
       }
+      if (deletedSubscriptions.has(subscriptionId)) {
+        throw new Error(
+          `Hermes 409: subscription "${subscriptionId}" id is reserved (a deleted subscription's id cannot be reused)`
+        );
+      }
       subscriptions.set(subscriptionId, {
         subscriptionId,
         topicId,
@@ -147,6 +157,14 @@ export function fixtureHermesClient(): HermesClient {
         redeliveredTotal: 0,
         deadLetteredTotal: 0,
       });
+    },
+
+    async deleteSubscription(subscriptionId: string): Promise<void> {
+      if (!subscriptions.has(subscriptionId)) {
+        throw new Error(`Hermes 404: subscription "${subscriptionId}" not found`);
+      }
+      subscriptions.delete(subscriptionId);
+      deletedSubscriptions.add(subscriptionId);
     },
 
     async publish(input: PublishInput): Promise<PublishResult> {

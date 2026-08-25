@@ -38,6 +38,13 @@ export interface HermesClient {
   /** POST /api/hermes/subscriptions — create a subscription bound to a topic. */
   createSubscription(subscriptionId: string, topicId: string): Promise<void>;
 
+  /**
+   * DELETE /api/hermes/subscriptions/{id} — delete a subscription. The id stays
+   * reserved afterwards (the broker rejects re-creating it), so this is not a
+   * name reset.
+   */
+  deleteSubscription(subscriptionId: string): Promise<void>;
+
   /** POST /api/hermes/publish — publish a message to a topic. */
   publish(input: PublishInput): Promise<PublishResult>;
 
