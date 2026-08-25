@@ -35,7 +35,7 @@ spec:
         namespace: flux-system
   values:
     image:
-      repository: vezril/hermesui
+      repository: calvinference/hermesui
       tag: 0.1.0
     replicaCount: 1
     hermes:

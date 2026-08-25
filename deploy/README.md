@@ -25,7 +25,7 @@ Flux and no cert-manager** yet (Flux is deferred until a k3s upgrade). So today:
 ```sh
 helm upgrade --install hermes deploy/charts/hermes \
   -n hermes-ui --create-namespace \
-  --set image.repository=vezril/hermesui --set image.tag=0.1.0 \
+  --set image.tag=0.1.0 \
   --set hermes.endpoint=http://hermesmq.hermesmq.svc.cluster.local:8080
 
 # then, until an ingress exists:
@@ -37,7 +37,7 @@ kubectl -n hermes-ui port-forward svc/hermes-hermes 8080:80
 ```sh
 helm lint deploy/charts/hermes
 helm template hermes deploy/charts/hermes \
-  --set image.repository=vezril/hermesui --set image.tag=0.1.0 \
+  --set image.tag=0.1.0 \
   --set hermes.endpoint=http://hermesmq.hermesmq.svc.cluster.local:8080
 ```
 
