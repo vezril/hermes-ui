@@ -24,8 +24,9 @@ export function HermesSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 z-20 flex h-dvh w-16 shrink-0 flex-col border-r border-border bg-card/50 backdrop-blur sm:w-60">
-      {/* Brand — logo top-left */}
+    <aside className="sticky top-0 z-20 flex h-dvh w-16 shrink-0 flex-col border-r border-border bg-sidebar sm:w-60">
+      {/* Brand — the god mark top-left (the mark is the only logo; the text is a
+          decorative, aria-hidden accent label, per the standard). */}
       <Link
         href="/"
         className="flex items-center gap-3 px-3 py-4 sm:px-4"
@@ -39,7 +40,10 @@ export function HermesSidebar() {
           height={40}
           className="size-9 shrink-0"
         />
-        <span className="hidden text-lg font-semibold tracking-tight sm:inline">
+        <span
+          aria-hidden="true"
+          className="hidden text-lg font-semibold tracking-tight text-primary sm:inline"
+        >
           Hermes
         </span>
       </Link>
@@ -61,10 +65,10 @@ export function HermesSidebar() {
               title={tab.label}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center justify-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors sm:justify-start sm:px-3",
+                "flex items-center justify-center gap-3 rounded-md border-l-2 px-2.5 py-2 text-sm font-medium transition-colors sm:justify-start sm:px-3",
                 active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  ? "glow-primary border-primary bg-primary/10 text-primary"
+                  : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               <Icon className="size-4 shrink-0" />
