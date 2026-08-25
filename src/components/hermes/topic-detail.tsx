@@ -15,12 +15,16 @@ import {
 } from "lucide-react";
 
 import { useMetrics } from "@/lib/hooks/use-metrics";
-import { useSubscriptions } from "@/lib/hooks/use-subscriptions";
+import {
+  useDeleteSubscription,
+  useSubscriptions,
+} from "@/lib/hooks/use-subscriptions";
 import { useDeleteTopic, useTopic, useTopics } from "@/lib/hooks/use-topics";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateSubscriptionDialog } from "./create-subscription-dialog";
+import { DeleteSubscriptionDialog } from "./delete-subscription-dialog";
 import { DeleteTopicDialog } from "./delete-topic-dialog";
 import { EditLabelsDialog } from "./edit-labels-dialog";
 
@@ -76,9 +80,13 @@ export function TopicDetail({ topicId }: { topicId: string }) {
   const subs = useSubscriptions();
   const metrics = useMetrics();
   const del = useDeleteTopic();
+  const delSub = useDeleteSubscription();
   const [editing, setEditing] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleted, setDeleted] = React.useState(false);
+  const [deleteSubTarget, setDeleteSubTarget] = React.useState<string | null>(
+    null
+  );
 
   const summary = topics.data?.find((t) => t.topicId === topicId);
   const publishedTotal =
@@ -95,6 +103,18 @@ export function TopicDetail({ topicId }: { topicId: string }) {
       await del.mutateAsync(topicId);
       setDeleted(true);
       setDeleting(false);
+    } catch {
+      // Surfaced in the dialog.
+    }
+  }
+
+  async function confirmDeleteSub() {
+    if (!deleteSubTarget) return;
+    try {
+      // The subscriptions list is invalidated on success, so the row drops out
+      // of this topic's subscribers on the next fetch.
+      await delSub.mutateAsync(deleteSubTarget);
+      setDeleteSubTarget(null);
     } catch {
       // Surfaced in the dialog.
     }
@@ -251,6 +271,15 @@ export function TopicDetail({ topicId }: { topicId: string }) {
                         {formatCount(s.deadLetteredTotal)} dead-lettered
                       </Badge>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Delete ${s.subscriptionId}`}
+                      className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteSubTarget(s.subscriptionId)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -277,6 +306,19 @@ export function TopicDetail({ topicId }: { topicId: string }) {
           }
         }}
         onConfirm={confirmDelete}
+      />
+
+      <DeleteSubscriptionDialog
+        subscriptionId={deleteSubTarget}
+        isDeleting={delSub.isPending}
+        error={delSub.isError ? (delSub.error as Error).message : null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteSubTarget(null);
+            delSub.reset();
+          }
+        }}
+        onConfirm={confirmDeleteSub}
       />
     </div>
   );
