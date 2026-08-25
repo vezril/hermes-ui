@@ -6,3 +6,8 @@
 next-env.d.ts
 .env*.local
 .DS_Store
+
+# Claude Code / OpenSpec: keep the shared opsx commands + skills, drop local state
+.claude/settings.local.json
+.claude/worktrees/
+.claude/launch.json

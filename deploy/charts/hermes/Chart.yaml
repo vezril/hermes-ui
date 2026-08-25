@@ -1,0 +1,7 @@
+apiVersion: v2
+name: hermes
+description: Hermes — the standalone Next.js operator console for HermesMQ, served through its REST BFF.
+type: application
+version: 0.1.0
+# Tracks the app's own version; overridden per release by the image tag in values.
+appVersion: "0.1.0"
