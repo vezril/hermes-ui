@@ -12,8 +12,9 @@ Hermes ships its own Helm chart; Codex operates it on the homelab cluster.
 The homelab is a single-node **k3s 1.21** on QNAP Container Station, with **no
 Flux and no cert-manager** yet (Flux is deferred until a k3s upgrade). So today:
 
-- Deploys are **manual** `helm upgrade --install` (git stays the source of truth);
-  the reference HelmRelease documents the values to mirror.
+- Deploys are **manual** `helm upgrade --install` (git stays the source of truth),
+  always with the **full desired values** via `-f` — never a bare `--set` (see the
+  warning below). The reference HelmRelease documents the values to mirror.
 - **Ingress is OFF by default** — there is no ingress TLS. Reach the console via
   `kubectl port-forward` or a NodePort. The ingress block is kept in the chart
   (plain-HTTP when `clusterIssuer`/`tlsSecretName` are empty; cert-manager TLS
@@ -22,22 +23,49 @@ Flux and no cert-manager** yet (Flux is deferred until a k3s upgrade). So today:
 
 ## Deploy (manual, current)
 
+> **⚠️ Deploy with the full desired values (`-f`), never a bare `--set`.**
+> `helm upgrade` **replaces the release's user-supplied values wholesale** — it
+> does *not* merge your new flags with the previous release's values. So a
+> `helm upgrade --set image.tag=X` that omits the operational values (ingress,
+> endpoint, replicas, …) **drops them**. That is exactly how a tag-bump once
+> silently deleted the console's tailnet ingress. Always pass the full desired
+> state via `-f <values>`; use `--set` only to override a field *on top of* that
+> file. The canonical values live in the codex GitOps repo under
+> `apps/hermes-ui` (mirrored from `flux/hermes-helmrelease.yaml` here).
+
 ```sh
+# Full desired state from a values file is the source of truth; --set only layers
+# a single-field override (the tag) on top of it — it never replaces the file.
 helm upgrade --install hermes deploy/charts/hermes \
   -n hermes-ui --create-namespace \
-  --set image.tag=0.1.0 \
-  --set hermes.endpoint=http://hermesmq.hermesmq.svc.cluster.local:8080
+  -f path/to/hermes-ui-values.yaml \
+  --set image.tag=0.1.4
 
-# then, until an ingress exists:
+# If no ingress is configured in your values, reach the console via port-forward:
 kubectl -n hermes-ui port-forward svc/hermes-hermes 8080:80
+```
+
+A minimal values file (endpoint + the current image tag) looks like:
+
+```yaml
+# hermes-ui-values.yaml
+image:
+  tag: 0.1.4
+hermes:
+  endpoint: http://hermesmq.hermesmq.svc.cluster.local:8080
+# ...plus ingress/replicas/etc. — everything the release should have, since
+# --set/-f do not merge with the previous release.
 ```
 
 ## Local render / lint
 
+`--set` is fine here — `helm template`/`helm lint` only render the chart locally;
+there is no release state to replace (the warning above is only about `upgrade`).
+
 ```sh
 helm lint deploy/charts/hermes
 helm template hermes deploy/charts/hermes \
-  --set image.tag=0.1.0 \
+  --set image.tag=0.1.4 \
   --set hermes.endpoint=http://hermesmq.hermesmq.svc.cluster.local:8080
 ```
 
