@@ -1,0 +1,73 @@
+# Default values for the Hermes chart.
+#
+# Cluster reality (per Codex): single-node k3s 1.21 on QNAP Container Station —
+# no Flux, no cert-manager, no ingress TLS yet. Deploys are manual
+# `helm upgrade --install` (git is the source of truth). So the defaults here are
+# conservative: one replica, ingress OFF. Turn ingress on once TLS exists.
+
+image:
+  # Docker Hub is the source of truth; the homelab pulls via the NAS
+  # pull-through cache. Override repository with your Docker Hub user.
+  repository: hermesui
+  # Pin to a released semver tag in production (matches the release workflow).
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Single-node cluster — one replica (more buys nothing here).
+replicaCount: 1
+
+# HermesMQ connection. Hermes is a BFF: the browser only ever talks to Hermes's
+# own /api/hermes/* routes; the endpoint and token stay SERVER-side.
+hermes:
+  # Browser client selector (NOT a secret): the same-origin BFF base path.
+  # NOTE: NEXT_PUBLIC_* is inlined into the browser bundle at BUILD time, so the
+  # effective browser value is whatever the image was built with (the Dockerfile
+  # bakes "/api/hermes"). This value is still passed as a runtime env, where it
+  # governs the server tier's copy — keep the two in sync.
+  apiBase: "/api/hermes"
+  # Base URL of HermesMQ's REST API (server-side, BFF only). HermesMQ serves HTTP
+  # on 8080; its Service and namespace are both "hermesmq" on the cluster:
+  #   http://hermesmq.hermesmq.svc.cluster.local:8080
+  endpoint: ""
+  # Optional bearer token for HermesMQ's auth'd /v1 admin API, from a Kubernetes
+  # Secret — never plaintext. The broker runs with auth disabled today, so leave
+  # secretName empty; set it (Secret "hermes-ui-token", key "token") when auth
+  # is turned on.
+  token:
+    secretName: ""
+    secretKey: token
+
+service:
+  port: 80
+  targetPort: 3000
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+ingress:
+  # OFF by default: the cluster has no ingress TLS yet (k3s bundled Traefik v2.4
+  # only; access is port-forward/NodePort). Enable once cert-manager/TLS exists.
+  enabled: false
+  className: traefik
+  host: hermes-ui.homelab
+  # cert-manager ClusterIssuer that signs the TLS cert. Leave empty to expose a
+  # plain-HTTP ingress (no cert-manager on the cluster yet).
+  clusterIssuer: ""
+  # TLS Secret name. Leave empty for a plain-HTTP ingress (no tls block emitted).
+  tlsSecretName: ""
+
+# Run as an unprivileged container (the image already runs as uid 1001; Next.js
+# standalone writes nothing to disk at runtime).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  fsGroup: 1001
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

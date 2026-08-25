@@ -1,0 +1,54 @@
+# Reference Flux HelmRelease for Hermes.
+#
+# The homelab cluster (single-node k3s 1.21 on QNAP) does NOT run Flux yet — it
+# is deliberately deferred until a k3s upgrade. So TODAY this file is a spec, not
+# a live resource: Codex deploys by mirroring these values into a manual
+#   helm upgrade --install hermes deploy/charts/hermes -n hermes-ui --create-namespace ...
+# (git stays the source of truth). When Codex's Flux base exists, this moves to
+# the codex repo under apps/ and sources the chart in THIS repo via a Flux
+# GitRepository named `hermes-ui`; bumping values.image.tag then rolls out via git.
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: hermes-ui
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: https://github.com/vezril/hermes-ui
+  ref:
+    branch: main
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: hermes
+  namespace: hermes-ui
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: deploy/charts/hermes
+      sourceRef:
+        kind: GitRepository
+        name: hermes-ui
+        namespace: flux-system
+  values:
+    image:
+      repository: vezril/hermesui
+      tag: 0.1.0
+    replicaCount: 1
+    hermes:
+      # Browser talks only to Hermes's own /api/hermes/* routes (also baked into
+      # the image at build time).
+      apiBase: /api/hermes
+      # HermesMQ's REST API — Service and namespace are both `hermesmq`.
+      endpoint: http://hermesmq.hermesmq.svc.cluster.local:8080
+      # Broker auth is disabled today; reference a Secret when it is turned on:
+      #   token:
+      #     secretName: hermes-ui-token
+      #     secretKey: token
+    ingress:
+      # No ingress TLS on the cluster yet (no cert-manager); reach the console via
+      # `kubectl port-forward` / a NodePort until TLS exists, then flip this on.
+      enabled: false
