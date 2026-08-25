@@ -1,6 +1,6 @@
 {
   "name": "hermes-ui",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Hermes — the HermesMQ operator console. A dark, low-chrome Next.js UI over HermesMQ's REST API via a same-origin BFF.",
   "license": "MIT",

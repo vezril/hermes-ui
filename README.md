@@ -2,8 +2,8 @@
 
 The operator console for [HermesMQ](https://github.com/vezril/hermesmq) — a dark,
 low-chrome Next.js UI over HermesMQ's REST admin API. Part of the Codex
-constellation; it supersedes the Hermes module that previously lived inside
-`zeus-ui`.
+constellation, and HermesMQ's dedicated standalone console. (An earlier Hermes
+module lived inside `zeus-ui`, since deprecated; this app replaced it.)
 
 ## Views
 
