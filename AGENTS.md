@@ -204,9 +204,9 @@ For a new broker-backed action, mirror the existing delete-subscription/topic fl
 
 ## Current state (keep updated)
 
-- **Latest release:** `v0.1.7` (`calvinference/hermesui:0.1.7`) — adds the `/docs` API reference, so
-  unlike the docs-only 0.1.5/0.1.6 this one is **deploy-worthy**. **Deployed in cluster:** `0.1.4`
-  until Codex rolls 0.1.7 (which folds in the 0.1.5 `--set` caveat + 0.1.6 zeus docs too).
+- **Latest release:** `v0.1.8` (`calvinference/hermesui:0.1.8`) — Next 16.3.3 upgrade (clears the
+  postcss/sharp advisories) + React hooks-rule fixes (badge pruning derived, not set-in-effect).
+  **Deployed in cluster:** `0.1.8` (Codex fleet roll, helm rev 11; route + `/docs` + CRUD verified).
 - **Feature inventory:** topics CRUD; subscriptions create/list/delete (Subscriptions view **and**
   topic-detail subscribers list); publish + live SSE tap; topic detail (producers/subscribers);
   statistics; UX-standards green retheme (sidebar + mark + watermark + Geist + favicon); API docs
