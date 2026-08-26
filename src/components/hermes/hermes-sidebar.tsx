@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Radio, Send, Waypoints } from "lucide-react";
+import { BarChart3, FileText, Radio, Send, Waypoints } from "lucide-react";
 
 import { HealthPill } from "./health-pill";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ const TABS = [
   { href: "/publish", label: "Publish", icon: Radio, exact: false },
   { href: "/subscriptions", label: "Subscriptions", icon: Waypoints, exact: false },
   { href: "/stats", label: "Statistics", icon: BarChart3, exact: false },
+  { href: "/docs", label: "API", icon: FileText, exact: false },
 ];
 
 /**
