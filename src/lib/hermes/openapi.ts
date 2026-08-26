@@ -11,7 +11,7 @@ export const openapiSpec = {
   openapi: "3.0.3",
   info: {
     title: "Hermes BFF API",
-    version: "0.1.6",
+    version: "0.1.7",
     description:
       "The Backend-for-Frontend for the Hermes operator console. These same-origin " +
       "`/api/hermes/*` routes proxy HermesMQ's REST admin API and inject the server-side " +
