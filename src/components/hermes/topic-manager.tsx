@@ -47,48 +47,57 @@ export function TopicManager() {
     [listed]
   );
 
-  // Reconcile optimistic sets against the eventually-consistent stats list.
-  React.useEffect(() => {
-    if (pendingCreate.length) {
-      setPendingCreate((prev) => prev.filter((id) => !listedIds.has(id)));
-    }
-    if (pendingDelete.length) {
-      setPendingDelete((prev) => prev.filter((id) => listedIds.has(id)));
-    }
-  }, [listedIds, pendingCreate.length, pendingDelete.length]);
+  // The pending sets record what this session did; what is still *unsettled* is
+  // derived against the latest projection rather than reconciled back into
+  // state by an effect (React 19 rejects a synchronous setState in an effect
+  // body as a cascading render — react-hooks/set-state-in-effect). Because the
+  // raw sets are no longer pruned, each handler below drops the id from the
+  // opposite set so a re-create can't resurrect a settled "deleting" badge.
+  const syncingIds = React.useMemo(
+    () => pendingCreate.filter((id) => !listedIds.has(id)),
+    [pendingCreate, listedIds]
+  );
+  const deletingIds = React.useMemo(
+    () => pendingDelete.filter((id) => listedIds.has(id)),
+    [pendingDelete, listedIds]
+  );
 
   // Poll the projection while anything is settling.
   React.useEffect(() => {
-    if (pendingCreate.length === 0 && pendingDelete.length === 0) return;
+    if (syncingIds.length === 0 && deletingIds.length === 0) return;
     const timer = setInterval(() => void refetch(), 1500);
     return () => clearInterval(timer);
-  }, [pendingCreate.length, pendingDelete.length, refetch]);
+  }, [syncingIds.length, deletingIds.length, refetch]);
 
   const rows: Row[] = React.useMemo(() => {
     const base: Row[] = listed.map((t) => ({
       topicId: t.topicId,
       publishedTotal: t.publishedTotal,
       syncing: false,
-      deleting: pendingDelete.includes(t.topicId),
+      deleting: deletingIds.includes(t.topicId),
     }));
-    const extra: Row[] = pendingCreate
-      .filter((id) => !listedIds.has(id))
-      .map((id) => ({
-        topicId: id,
-        publishedTotal: 0,
-        syncing: true,
-        deleting: false,
-      }));
+    const extra: Row[] = syncingIds.map((id) => ({
+      topicId: id,
+      publishedTotal: 0,
+      syncing: true,
+      deleting: false,
+    }));
     return [...base, ...extra].sort((a, b) =>
       a.topicId.localeCompare(b.topicId)
     );
-  }, [listed, listedIds, pendingCreate, pendingDelete]);
+  }, [listed, syncingIds, deletingIds]);
+
+  function markCreated(id: string) {
+    setPendingDelete((prev) => prev.filter((p) => p !== id));
+    setPendingCreate((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
     const id = deleteTarget;
     try {
       await del.mutateAsync(id);
+      setPendingCreate((prev) => prev.filter((p) => p !== id));
       setPendingDelete((prev) => (prev.includes(id) ? prev : [...prev, id]));
       setDeleteTarget(null);
     } catch {
@@ -108,11 +117,7 @@ export function TopicManager() {
             </p>
           </div>
         </div>
-        <CreateTopicDialog
-          onCreated={(id) =>
-            setPendingCreate((prev) => (prev.includes(id) ? prev : [...prev, id]))
-          }
-        />
+        <CreateTopicDialog onCreated={markCreated} />
       </header>
 
       {isLoading ? (
