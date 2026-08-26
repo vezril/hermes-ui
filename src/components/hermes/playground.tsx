@@ -29,41 +29,25 @@ const FEED_CAP = 200;
  */
 export function Playground() {
   const { data: topics } = useTopics();
-  const [topicId, setTopicId] = React.useState("");
 
-  // Default to the scratch topic when present, else the first topic.
-  React.useEffect(() => {
-    if (topicId || !topics?.length) return;
-    setTopicId(
-      topics.find((t) => t.topicId === "hermes.playground")?.topicId ??
-        topics[0].topicId
-    );
-  }, [topics, topicId]);
+  // The selection is only what the operator explicitly picked; the effective
+  // topic is derived during render, defaulting to the scratch topic when
+  // present and otherwise the first one. Deriving beats the old
+  // "effect writes the default into state" shape: no cascading render (React
+  // 19's react-hooks/set-state-in-effect) and no first paint showing an empty
+  // select over an already-loaded topic list.
+  const [chosenTopicId, setChosenTopicId] = React.useState<string | null>(null);
+  const defaultTopicId =
+    topics?.find((t) => t.topicId === "hermes.playground")?.topicId ??
+    topics?.[0]?.topicId ??
+    "";
+  const topicId = chosenTopicId ?? defaultTopicId;
 
-  // A per-view marker so the tap can flag messages this view published as "mine".
-  const tapOrigin = React.useRef<string>("");
-  if (!tapOrigin.current) tapOrigin.current = uid();
-
-  // --- Live tap ---
-  const [feed, setFeed] = React.useState<FeedItem[]>([]);
-  const [tapStatus, setTapStatus] = React.useState<TapStatus>("idle");
-
-  React.useEffect(() => {
-    if (!topicId) return;
-    setFeed([]);
-    setTapStatus("idle");
-    const tap = getHermesClient().openTap(topicId);
-    tap.onStatus((s) => setTapStatus(s));
-    tap.onMessage((m) =>
-      setFeed((prev) =>
-        [
-          { ...m, mine: m.attributes[TAP_ORIGIN_ATTR] === tapOrigin.current },
-          ...prev,
-        ].slice(0, FEED_CAP)
-      )
-    );
-    return () => tap.close();
-  }, [topicId]);
+  // A per-view marker so the tap can flag messages this view published as
+  // "mine". A lazy state initializer runs `uid()` exactly once per mount, which
+  // is what the old ref-written-during-render did without reading a ref during
+  // render (react-hooks/refs).
+  const [tapOrigin] = React.useState(uid);
 
   // --- Side-effect warning: real (non-inspector) subscribers on the topic ---
   const realSubs = useQuery({
@@ -83,7 +67,7 @@ export function Playground() {
       getHermesClient().publish({
         topicId,
         payload,
-        attributes: { ...attributes, [TAP_ORIGIN_ATTR]: tapOrigin.current },
+        attributes: { ...attributes, [TAP_ORIGIN_ATTR]: tapOrigin },
         ttlSeconds: ttl ? Number(ttl) : undefined,
         idempotencyKey: idempotencyKey || undefined,
       }),
@@ -119,7 +103,7 @@ export function Playground() {
           <label className="mb-1 block text-xs text-muted-foreground">Topic</label>
           <select
             value={topicId}
-            onChange={(e) => setTopicId(e.target.value)}
+            onChange={(e) => setChosenTopicId(e.target.value)}
             className="mb-3 h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {(topics ?? []).map((t) => (
@@ -204,31 +188,69 @@ export function Playground() {
           </div>
         </section>
 
-        {/* Live feed */}
-        <section className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Live feed
-            </h2>
-            <TapIndicator status={tapStatus} />
-          </div>
-
-          {feed.length === 0 ? (
-            <div className="py-16 text-center text-sm text-muted-foreground">
-              Waiting for messages on{" "}
-              <span className="font-mono">{topicId || "…"}</span>. Publish one to
-              see the loop.
-            </div>
-          ) : (
-            <ul className="max-h-[28rem] space-y-2 overflow-y-auto">
-              {feed.map((m) => (
-                <FeedRow key={m.id} message={m} />
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* Live feed. Keyed by topic: switching topics remounts it, which is how
+            the feed and the tap status get reset — the old inline version reset
+            them with a setState at the top of the tap effect, which React 19
+            rejects as a cascading render (react-hooks/set-state-in-effect). */}
+        <LiveFeed key={topicId} topicId={topicId} tapOrigin={tapOrigin} />
       </div>
     </div>
+  );
+}
+
+/**
+ * The non-destructive inspector tap on one topic, rendered as a live feed.
+ * Owns the feed and the tap status so that both are scoped to the mount, and
+ * subscribes for the lifetime of that mount.
+ */
+function LiveFeed({
+  topicId,
+  tapOrigin,
+}: {
+  topicId: string;
+  tapOrigin: string;
+}) {
+  const [feed, setFeed] = React.useState<FeedItem[]>([]);
+  const [tapStatus, setTapStatus] = React.useState<TapStatus>("idle");
+
+  React.useEffect(() => {
+    if (!topicId) return;
+    const tap = getHermesClient().openTap(topicId);
+    tap.onStatus((s) => setTapStatus(s));
+    tap.onMessage((m) =>
+      setFeed((prev) =>
+        [
+          { ...m, mine: m.attributes[TAP_ORIGIN_ATTR] === tapOrigin },
+          ...prev,
+        ].slice(0, FEED_CAP)
+      )
+    );
+    return () => tap.close();
+  }, [topicId, tapOrigin]);
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Live feed
+        </h2>
+        <TapIndicator status={tapStatus} />
+      </div>
+
+      {feed.length === 0 ? (
+        <div className="py-16 text-center text-sm text-muted-foreground">
+          Waiting for messages on{" "}
+          <span className="font-mono">{topicId || "…"}</span>. Publish one to see
+          the loop.
+        </div>
+      ) : (
+        <ul className="max-h-[28rem] space-y-2 overflow-y-auto">
+          {feed.map((m) => (
+            <FeedRow key={m.id} message={m} />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
