@@ -190,13 +190,13 @@ For a new broker-backed action, mirror the existing delete-subscription/topic fl
 
 ## Current state (keep updated)
 
-- **Latest release:** `v0.1.6` (`calvinference/hermesui:0.1.6`). **Deployed in cluster:** `0.1.4`
-  (the last behavioral release — the green UX-standards retheme). 0.1.5/0.1.6 are docs-only and
-  intentionally un-rolled.
+- **Latest release:** `v0.1.7` (`calvinference/hermesui:0.1.7`) — adds the `/docs` API reference, so
+  unlike the docs-only 0.1.5/0.1.6 this one is **deploy-worthy**. **Deployed in cluster:** `0.1.4`
+  until Codex rolls 0.1.7 (which folds in the 0.1.5 `--set` caveat + 0.1.6 zeus docs too).
 - **Feature inventory:** topics CRUD; subscriptions create/list/delete (Subscriptions view **and**
   topic-detail subscribers list); publish + live SSE tap; topic detail (producers/subscribers);
   statistics; UX-standards green retheme (sidebar + mark + watermark + Geist + favicon); API docs
-  (OpenAPI + `/docs` Scalar page + Insomnia collection) ← this change.
+  (OpenAPI + `/docs` Scalar page + Insomnia collection).
 - **Open, non-blocking:** `release.yml` actions warn on Node-20 deprecation (cosmetic).
 
 ## Maintaining this file
