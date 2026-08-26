@@ -1,10 +1,20 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// Native flat config. Next 16 removed `next lint`, and eslint-config-next now
+// ships real flat configs, so the old `@eslint/eslintrc` FlatCompat shim throws
+// against v16. Mirrors demeter-ui and hephaestus-ui, the sibling consoles.
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const compat = new FlatCompat({ baseDirectory: __dirname });
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores([
+    // eslint-config-next's own defaults, restated because overriding drops them.
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
 
-const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript")];
 export default eslintConfig;
