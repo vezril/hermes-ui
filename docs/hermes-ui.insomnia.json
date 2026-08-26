@@ -1,0 +1,193 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_source": "hermes-ui",
+  "resources": [
+    {
+      "_id": "wrk_hermes_bff",
+      "_type": "workspace",
+      "name": "Hermes BFF",
+      "description": "The Hermes operator console's Backend-for-Frontend (/api/hermes/*). Requests hit the console host; the BFF injects the HermesMQ token server-side, so no auth is needed here. Set base_url in the environment (default: the deployed tailnet console).",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "parentId": "wrk_hermes_bff",
+      "name": "Base",
+      "data": {
+        "base_url": "http://hermes.tailscale:61642/api/hermes",
+        "local_url": "http://localhost:3000/api/hermes",
+        "topic_id": "orders.events",
+        "subscription_id": "orders.fulfillment"
+      },
+      "metaSortKey": 1
+    },
+    {
+      "_id": "fld_topics",
+      "_type": "request_group",
+      "parentId": "wrk_hermes_bff",
+      "name": "Topics",
+      "metaSortKey": 100
+    },
+    {
+      "_id": "req_topics_list",
+      "_type": "request",
+      "parentId": "fld_topics",
+      "name": "List topics",
+      "method": "GET",
+      "url": "{{ _.base_url }}/topics",
+      "metaSortKey": 101
+    },
+    {
+      "_id": "req_topics_create",
+      "_type": "request",
+      "parentId": "fld_topics",
+      "name": "Create a topic",
+      "method": "POST",
+      "url": "{{ _.base_url }}/topics",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"topicId\": \"{{ _.topic_id }}\",\n  \"labels\": { \"team\": \"commerce\", \"tier\": \"gold\" }\n}"
+      },
+      "metaSortKey": 102
+    },
+    {
+      "_id": "req_topics_get",
+      "_type": "request",
+      "parentId": "fld_topics",
+      "name": "Get a topic",
+      "method": "GET",
+      "url": "{{ _.base_url }}/topics/{{ _.topic_id }}",
+      "metaSortKey": 103
+    },
+    {
+      "_id": "req_topics_patch",
+      "_type": "request",
+      "parentId": "fld_topics",
+      "name": "Replace a topic's labels",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/topics/{{ _.topic_id }}",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"labels\": { \"team\": \"commerce\", \"tier\": \"platinum\" }\n}"
+      },
+      "metaSortKey": 104
+    },
+    {
+      "_id": "req_topics_delete",
+      "_type": "request",
+      "parentId": "fld_topics",
+      "name": "Delete a topic",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/topics/{{ _.topic_id }}",
+      "metaSortKey": 105
+    },
+    {
+      "_id": "fld_subs",
+      "_type": "request_group",
+      "parentId": "wrk_hermes_bff",
+      "name": "Subscriptions",
+      "metaSortKey": 200
+    },
+    {
+      "_id": "req_subs_list",
+      "_type": "request",
+      "parentId": "fld_subs",
+      "name": "List subscriptions",
+      "method": "GET",
+      "url": "{{ _.base_url }}/subscriptions",
+      "metaSortKey": 201
+    },
+    {
+      "_id": "req_subs_create",
+      "_type": "request",
+      "parentId": "fld_subs",
+      "name": "Create a subscription",
+      "method": "POST",
+      "url": "{{ _.base_url }}/subscriptions",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"subscriptionId\": \"{{ _.subscription_id }}\",\n  \"topicId\": \"{{ _.topic_id }}\"\n}"
+      },
+      "metaSortKey": 202
+    },
+    {
+      "_id": "req_subs_delete",
+      "_type": "request",
+      "parentId": "fld_subs",
+      "name": "Delete a subscription (id stays reserved)",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/subscriptions/{{ _.subscription_id }}",
+      "metaSortKey": 203
+    },
+    {
+      "_id": "fld_messaging",
+      "_type": "request_group",
+      "parentId": "wrk_hermes_bff",
+      "name": "Messaging",
+      "metaSortKey": 300
+    },
+    {
+      "_id": "req_publish",
+      "_type": "request",
+      "parentId": "fld_messaging",
+      "name": "Publish a message",
+      "method": "POST",
+      "url": "{{ _.base_url }}/publish",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"topicId\": \"{{ _.topic_id }}\",\n  \"payload\": \"{\\\"hello\\\":\\\"world\\\"}\",\n  \"attributes\": {},\n  \"ttlSeconds\": null,\n  \"idempotencyKey\": null\n}"
+      },
+      "metaSortKey": 301
+    },
+    {
+      "_id": "req_tap",
+      "_type": "request",
+      "parentId": "fld_messaging",
+      "name": "Tap a topic (SSE — use an EventSource client)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/tap?topic={{ _.topic_id }}",
+      "description": "Server-Sent Events stream. Insomnia's event-stream view shows frames; each `message` event's data is a JSON TapMessage.",
+      "metaSortKey": 302
+    },
+    {
+      "_id": "fld_obs",
+      "_type": "request_group",
+      "parentId": "wrk_hermes_bff",
+      "name": "Observability",
+      "metaSortKey": 400
+    },
+    {
+      "_id": "req_health",
+      "_type": "request",
+      "parentId": "fld_obs",
+      "name": "Health",
+      "method": "GET",
+      "url": "{{ _.base_url }}/health",
+      "metaSortKey": 401
+    },
+    {
+      "_id": "req_metrics",
+      "_type": "request",
+      "parentId": "fld_obs",
+      "name": "Metrics (Prometheus text)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/metrics",
+      "metaSortKey": 402
+    },
+    {
+      "_id": "req_openapi",
+      "_type": "request",
+      "parentId": "fld_obs",
+      "name": "OpenAPI document",
+      "method": "GET",
+      "url": "{{ _.base_url }}/openapi",
+      "metaSortKey": 403
+    }
+  ]
+}
