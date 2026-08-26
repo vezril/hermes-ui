@@ -15,6 +15,20 @@ module lived inside `zeus-ui`, since deprecated; this app replaced it.)
   health).
 - **Statistics** (`/stats`) — broker-wide totals plus per-topic and
   per-subscription breakdowns.
+- **API** (`/docs`) — an interactive API reference (Scalar) for the BFF.
+
+## API docs
+
+The BFF API (`/api/hermes/*`) is described by an OpenAPI 3.0 spec:
+
+- **Web reference:** `/docs` (rendered from the spec).
+- **Raw spec:** `GET /api/hermes/openapi` — importable into any OpenAPI tool.
+- **Insomnia collection:** [`docs/hermes-ui.insomnia.json`](docs/hermes-ui.insomnia.json)
+  (Insomnia → Import). Set `base_url` in its environment; defaults to the
+  deployed console.
+
+The spec's source of truth is [`src/lib/hermes/openapi.ts`](src/lib/hermes/openapi.ts) —
+keep it and the Insomnia collection in sync when routes change.
 
 ## Architecture
 
