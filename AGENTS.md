@@ -76,6 +76,11 @@ at `docs/hermes-ui.insomnia.json` (import it, or import the OpenAPI URL directly
 
 **When you change a route, update `src/lib/hermes/openapi.ts` and the Insomnia collection to match.**
 
+**Audience note:** the BFF is the *console's* API (same-origin, token injected server-side) — it is
+not the integration surface for other services. Services talk to the broker directly using the
+**official HermesMQ clients** (Scala / Python 3 / JS) that live in the `hermesmq` repo — see
+Constellation coordination below.
+
 ## Code map
 
 ```
@@ -169,6 +174,15 @@ port 80 (the QNAP's nginx owns it and 200s any Host). Stopgap access:
 - The **broker is `hermesmq`**; other services publish to it (e.g. Demeter → `demeter-deals`,
   Artemis → `media.*` topics + `artemis.media.*` subs). The console shows whatever is live on the
   broker.
+- **Official broker clients** (added 2026-08-26): the `hermesmq` repo ships one client per
+  constellation language — Scala (the `client` sbt module), Python 3 (`clients/python`,
+  `pip install "hermesmq-client @ git+https://github.com/vezril/hermesmq#subdirectory=clients/python"`),
+  and JS (`clients/js`, `@hermesmq/client`, zero-dep ESM, vendorable). Matrix + conformance
+  contract: `hermesmq/clients/README.md`. Point integrating services there instead of letting them
+  hand-roll `/v1` calls — and note hermes-ui itself does NOT use these (its own
+  `src/lib/hermes/` seam + BFF predate them and serve a different job: fixtures, SSE tap, browser
+  secret-boundary). A broker API change updates **all three clients + their stubs + the openspec
+  client specs in the same hermesmq PR** (the update-all-three rule).
 - Peer sessions come and go; verify reachability with `ListAgents` before `SendMessage`. On the
   shared machine, peers can be identified by cwd (`lsof -p <pid-from /tmp/cc-socks/*.sock> -d cwd`),
   but only `ListAgents` confirms messageability.
